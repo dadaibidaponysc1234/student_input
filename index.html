@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Handwriting Canvas</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    #container {
+      border: 1px solid #ccc;
+      margin: 20px 0;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .controls label {
+      font-size: 14px;
+    }
+
+    canvas {
+      cursor: crosshair;
+    }
+
+    .icon {
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .active-tool {
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h1>AlogrithmX Writing Tool</h1>
+
+  <div class="controls">
+    <!-- Pen/Eraser Tool Icons -->
+    <i id="pen-icon" class="fas fa-pen icon active-tool" title="Pen Tool"></i>
+    <i id="eraser-icon" class="fas fa-eraser icon" title="Eraser Tool"></i>
+
+    <!-- Stroke Color Picker -->
+    <label for="color-picker">Pen Color:</label>
+    <input type="color" id="color-picker" value="#000000">
+
+    <!-- Stroke Width Slider -->
+    <label for="width-slider">Pen Width:</label>
+    <input type="range" id="width-slider" min="1" max="20" value="3">
+    <span id="width-display">3px</span>
+
+    <!-- Page Controls -->
+    <button id="prev-page-btn">Previous Page</button>
+    <button id="new-page-btn">Next Page</button>
+    <span id="page-indicator">Page 1</span>
+
+    <!-- Undo/Redo -->
+    <button id="undo-btn">Undo</button>
+    <button id="redo-btn">Redo</button>
+
+    <!-- Clear and Save -->
+    <button id="clear-btn">Clear</button>
+    <button id="save-pdf-btn">Download as PDF</button>
+  </div>
+
+<!-- Canvas Container -->
+<div id="canvas-container" style="width: 95%; height:70vh ; position: relative;">
+  <canvas id="container" style="width: 100%;" ></canvas>
+</div>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
