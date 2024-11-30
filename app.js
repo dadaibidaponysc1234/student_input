@@ -1,4 +1,4 @@
-// Get DOM Elements
+// DOM Elements
 const canvas = document.getElementById('container');
 const container = document.getElementById('canvas-container');
 const ctx = canvas.getContext('2d');
@@ -24,20 +24,23 @@ let lastX = 0;
 let lastY = 0;
 const undoStack = [];
 const redoStack = [];
-const pages = [null]; // Store canvas state as images, starting with the first page
+const pages = [null];
 let currentPage = 0;
 
-// Event Listeners for Tools
+// Update stroke color dynamically
 colorPicker.addEventListener('input', (e) => {
   strokeColor = e.target.value;
+  eraserMode = false;
   activateTool('pen');
 });
 
+// Update stroke width dynamically
 widthSlider.addEventListener('input', (e) => {
   strokeWidth = parseInt(e.target.value, 10);
   widthDisplay.textContent = `${strokeWidth}px`;
 });
 
+// Activate Pen or Eraser
 penIcon.addEventListener('click', () => activateTool('pen'));
 eraserIcon.addEventListener('click', () => activateTool('eraser'));
 
@@ -53,68 +56,82 @@ function activateTool(tool) {
   }
 }
 
-// Handle Mouse and Touch Events
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('mouseout', stopDrawing);
-
-canvas.addEventListener('touchstart', startDrawing);
-canvas.addEventListener('touchmove', draw);
-canvas.addEventListener('touchend', stopDrawing);
-
-function startDrawing(e) {
+// Drawing logic for both mouse and touch
+function startDrawing(x, y) {
   isDrawing = true;
   saveToUndoStack();
-  const { offsetX, offsetY } = getCoordinates(e);
-  [lastX, lastY] = [offsetX, offsetY];
+  [lastX, lastY] = [x, y];
 }
 
-function draw(e) {
+function draw(x, y) {
   if (!isDrawing) return;
 
-  const { offsetX, offsetY } = getCoordinates(e);
   ctx.lineWidth = strokeWidth;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  ctx.strokeStyle = eraserMode ? '#ffffff' : strokeColor;
-  ctx.globalCompositeOperation = eraserMode ? 'destination-out' : 'source-over';
+  if (eraserMode) {
+    ctx.strokeStyle = '#ffffff';
+    ctx.globalCompositeOperation = 'destination-out';
+  } else {
+    ctx.strokeStyle = strokeColor;
+    ctx.globalCompositeOperation = 'source-over';
+  }
 
   ctx.beginPath();
   ctx.moveTo(lastX, lastY);
-  ctx.lineTo(offsetX, offsetY);
+  ctx.lineTo(x, y);
   ctx.stroke();
 
-  [lastX, lastY] = [offsetX, offsetY];
+  [lastX, lastY] = [x, y];
 }
 
 function stopDrawing() {
   isDrawing = false;
 }
 
-// Get Coordinates for Mouse and Touch Events
-function getCoordinates(e) {
-  const rect = canvas.getBoundingClientRect();
-  const offsetX = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-  const offsetY = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-  return { offsetX, offsetY };
-}
+// Mouse events
+canvas.addEventListener('mousedown', (e) => startDrawing(e.offsetX, e.offsetY));
+canvas.addEventListener('mousemove', (e) => draw(e.offsetX, e.offsetY));
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseout', stopDrawing);
 
-// Canvas Controls
+// Touch events
+canvas.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  startDrawing(touch.clientX - rect.left, touch.clientY - rect.top);
+  e.preventDefault();
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  draw(touch.clientX - rect.left, touch.clientY - rect.top);
+  e.preventDefault();
+});
+
+canvas.addEventListener('touchend', stopDrawing);
+canvas.addEventListener('touchcancel', stopDrawing);
+
+// Clear Canvas
 clearButton.addEventListener('click', () => {
   saveToUndoStack();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
+// Add New Page
 newPageButton.addEventListener('click', () => {
   savePageState();
   currentPage++;
-  pages[currentPage] = pages[currentPage] || null;
+  if (!pages[currentPage]) {
+    pages[currentPage] = null;
+  }
   updateCanvas();
   updatePageIndicator();
 });
 
+// Previous Page
 prevPageButton.addEventListener('click', () => {
   if (currentPage > 0) {
     savePageState();
@@ -126,7 +143,20 @@ prevPageButton.addEventListener('click', () => {
   }
 });
 
-// Undo and Redo
+// Save as PDF
+savePdfButton.addEventListener('click', async () => {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+
+  pages.forEach((page, index) => {
+    if (index > 0) pdf.addPage();
+    pdf.addImage(page, 'PNG', 10, 10, 190, 120);
+  });
+
+  pdf.save('handwriting.pdf');
+});
+
+// Undo/Redo
 undoButton.addEventListener('click', () => {
   if (undoStack.length > 0) {
     redoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
@@ -143,61 +173,19 @@ redoButton.addEventListener('click', () => {
   }
 });
 
-// Save as PDF
-savePdfButton.addEventListener('click', async () => {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
+// Save Current Canvas State to Undo Stack
+function saveToUndoStack() {
+  undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  if (undoStack.length > 20) undoStack.shift();
+  redoStack.length = 0;
+}
 
-  pages.forEach((page, index) => {
-    if (index > 0) pdf.addPage();
-    pdf.addImage(page, 'PNG', 10, 10, 190, 120);
-  });
-
-  pdf.save('handwriting.pdf');
-});
-// savePdfButton.addEventListener('click', async () => {
-//   const { jsPDF } = window.jspdf;
-//   const pdf = new jsPDF();
-
-//   // Adjust canvas scaling for high-resolution export
-//   const scaleFactor = 2; // To improve PDF quality, use a higher scaling factor
-//   const tempCanvas = document.createElement('canvas');
-//   const tempCtx = tempCanvas.getContext('2d');
-
-//   pages.forEach((page, index) => {
-//     if (!page) return;
-
-//     // Create a temporary canvas for exporting high-resolution images
-//     tempCanvas.width = canvas.width * scaleFactor;
-//     tempCanvas.height = canvas.height * scaleFactor;
-
-//     tempCtx.scale(scaleFactor, scaleFactor);
-//     const img = new Image();
-//     img.src = page;
-
-//     img.onload = () => {
-//       tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-//       tempCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-//       const imgData = tempCanvas.toDataURL('image/png');
-//       if (index > 0) pdf.addPage();
-//       pdf.addImage(imgData, 'PNG', 0, 0, 210, 297); // Adjust to fit A4 size
-//     };
-//   });
-
-//   // Save PDF after images are loaded
-//   setTimeout(() => {
-//     pdf.save('handwriting.pdf');
-//   }, 1000); // Allow some delay for image loading
-// });
-
-
-// Save Page State
+// Save Current Page State
 function savePageState() {
   pages[currentPage] = canvas.toDataURL('image/png');
 }
 
-// Update Canvas
+// Update Canvas with Current Page
 function updateCanvas() {
   const pageData = pages[currentPage];
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -214,18 +202,12 @@ function updatePageIndicator() {
   pageIndicator.textContent = `Page ${currentPage + 1}`;
 }
 
-// Save to Undo Stack
-function saveToUndoStack() {
-  undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-}
-
-// Responsive Canvas
+// Dynamic Canvas Resize
 function resizeCanvas() {
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  canvas.width = container.clientWidth * devicePixelRatio;
-  canvas.height = container.clientHeight * devicePixelRatio;
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
 }
 
+// Initialize
+window.addEventListener('load', resizeCanvas);
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
