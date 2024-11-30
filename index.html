@@ -35,6 +35,7 @@
 
     canvas {
       cursor: crosshair;
+      touch-action: none; /* Ensure touch events work */
     }
 
     .icon {
@@ -80,7 +81,7 @@
 
   <!-- Canvas Container -->
   <div id="canvas-container" style="width: 95%; height: 70vh; position: relative;">
-    <canvas id="container" style="width: 100%;"></canvas>
+    <canvas id="container"></canvas>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
