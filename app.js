@@ -97,22 +97,22 @@ clearButton.addEventListener('click', () => {
 
 // Add New Page
 newPageButton.addEventListener('click', () => {
-  savePageState(); // Save the current page before creating a new one
+  savePageState();
   currentPage++;
   if (!pages[currentPage]) {
     pages[currentPage] = null; // Initialize a new page if it doesn't exist
   }
-  updateCanvas(); // Update canvas with the new (blank) page
-  updatePageIndicator(); // Update the page indicator
+  updateCanvas();
+  updatePageIndicator();
 });
 
 // Previous Page
 prevPageButton.addEventListener('click', () => {
   if (currentPage > 0) {
-    savePageState(); // Save the current page before navigating to the previous one
+    savePageState();
     currentPage--;
-    updateCanvas(); // Update canvas with the previous page
-    updatePageIndicator(); // Update the page indicator
+    updateCanvas();
+    updatePageIndicator();
   } else {
     alert('You are on the first page!');
   }
@@ -179,11 +179,10 @@ function updatePageIndicator() {
 
 // Function to set canvas size dynamically based on the container's size
 function resizeCanvas() {
-  // Set the canvas width and height to match the container's dimensions
   canvas.width = container.clientWidth;
   canvas.height = container.clientHeight;
 }
 
 // Call the resizeCanvas function when the page loads and on window resize
 window.addEventListener('load', resizeCanvas);
-window.addEventListener('resize', resizeCanvas);
+window.addEventListener('resize',resizeCanvas);
