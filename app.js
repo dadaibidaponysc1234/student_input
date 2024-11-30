@@ -144,17 +144,112 @@ prevPageButton.addEventListener('click', () => {
 });
 
 // Save as PDF
+// savePdfButton.addEventListener('click', async () => {
+//   const { jsPDF } = window.jspdf;
+//   const pdf = new jsPDF();
+
+//   pages.forEach((page, index) => {
+//     if (page) {
+//       if (index > 0) pdf.addPage();
+
+//       // Create an image and get its dimensions for accurate scaling
+//       const img = new Image();
+//       img.src = page;
+//       img.onload = () => {
+//         const imgWidth = pdf.internal.pageSize.getWidth(); // PDF page width
+//         const imgHeight = (img.height / img.width) * imgWidth; // Maintain aspect ratio
+
+//         // Add the image to the PDF
+//         pdf.addImage(img, 'PNG', 0, 0, imgWidth, imgHeight);
+
+//         // Save the PDF after all images are loaded
+//         if (index === pages.length - 1) pdf.save('handwriting.pdf');
+//       };
+//     }
+//   });
+// });
 savePdfButton.addEventListener('click', async () => {
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
 
-  pages.forEach((page, index) => {
-    if (index > 0) pdf.addPage();
-    pdf.addImage(page, 'PNG', 10, 10, 190, 120);
+  // PDF dimensions (A4 size in points)
+  // const pdfWidth = 595.28;
+  // const pdfHeight = 841.89;
+  const pdfWidth = 300;
+  const pdfHeight = 300;
+  const pdfAspectRatio = pdfWidth / pdfHeight;
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: [pdfWidth, pdfHeight],
   });
 
+  // Save the current page state before generating the PDF
+  savePageState();
+
+  // Function to add a page to the PDF
+  const addImageToPdf = (pageData, isFirstPage = false) => {
+    return new Promise((resolve) => {
+      if (pageData) {
+        const img = new Image();
+        img.src = pageData;
+        img.onload = () => {
+          const canvasAspectRatio = img.width / img.height;
+
+          let adjustedWidth, adjustedHeight;
+
+          if (canvasAspectRatio > pdfAspectRatio) {
+            adjustedWidth = pdfWidth;
+            adjustedHeight = pdfWidth / canvasAspectRatio;
+          } else {
+            adjustedHeight = pdfHeight;
+            adjustedWidth = pdfHeight * canvasAspectRatio;
+          }
+
+          const xOffset = (pdfWidth - adjustedWidth) / 2;
+          const yOffset = (pdfHeight - adjustedHeight) / 2;
+
+          if (!isFirstPage) pdf.addPage();
+
+          pdf.addImage(
+            img,
+            'PNG',
+            xOffset,
+            yOffset,
+            adjustedWidth,
+            adjustedHeight
+          );
+
+          resolve();
+        };
+
+        img.onerror = () => {
+          console.error("Failed to load image for PDF generation.");
+          resolve();
+        };
+      } else {
+        console.warn("No page data found for this page.");
+        resolve();
+      }
+    });
+  };
+
+  // Loop through all pages and add them to the PDF
+  for (let i = 0; i < pages.length; i++) {
+    await addImageToPdf(pages[i], i === 0);
+  }
+
+  // Save the PDF
   pdf.save('handwriting.pdf');
 });
+
+// Save Current Page State
+function savePageState() {
+  pages[currentPage] = canvas.toDataURL('image/png');
+  console.log(`Saved page ${currentPage + 1}`); // Debugging log
+}
+
+
 
 // Undo/Redo
 undoButton.addEventListener('click', () => {
